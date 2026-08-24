@@ -71,9 +71,11 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
 
       {/* Caption Editor */}
       <div className="shrink-0 flex flex-row items-baseline justify-start gap-1 w-full px-2 text-black leading-snug" style={{ fontFamily: settings.fontFamily, fontSize: `${settings.captionFontSize}px` }}>
-        <span className="whitespace-nowrap font-medium">
-          Imagem {globalIndex} {photo.description ? '-' : ''}
-        </span>
+        {settings.numberImages && (
+          <span className="whitespace-nowrap font-medium">
+            Imagem {globalIndex} {photo.description ? '-' : ''}
+          </span>
+        )}
         <textarea
           value={photo.description}
           onChange={(e) => onUpdate(photo.id, { description: e.target.value })}

@@ -84,7 +84,7 @@ export function PageSheet({
 
       {/* Page Numbering */}
       {settings.showPageNum && (
-        <div className="absolute bottom-4 right-8 text-sm" style={{ fontFamily: settings.fontFamily }}>
+        <div className="absolute bottom-4 right-8" style={{ fontFamily: settings.fontFamily, fontSize: `${settings.captionFontSize}px` }}>
           Página {settings.startPageNum + pageIndex}
         </div>
       )}

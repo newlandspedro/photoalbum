@@ -27,7 +27,9 @@ export default function App() {
     captionFontSize: 14,
     startPageNum: 1,
     showPageNum: true,
-    title: 'Relatório Fotográfico'
+    title: 'Relatório Fotográfico',
+    numberImages: true,
+    startingImageNumber: 1
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -199,27 +201,23 @@ export default function App() {
   };
 
   const handlePrint = () => {
-    try {
-      const originalTitle = document.title;
-      const date = new Date();
-      const yyyy = date.getFullYear();
-      const mm = String(date.getMonth() + 1).padStart(2, '0');
-      const dd = String(date.getDate()).padStart(2, '0');
-      document.title = `relatoriofotografico_${yyyy}-${mm}-${dd}`;
-      
-      window.print();
-      
-      setTimeout(() => {
-        document.title = originalTitle;
-      }, 1000);
-    } catch (e) {
-      alert("Não foi possível gerar o PDF aqui. Por favor, abra o aplicativo em uma Nova Guia.");
-    }
+    const originalTitle = document.title;
+    const date = new Date();
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    document.title = `relatoriofotografico_${yyyy}-${mm}-${dd}`;
+    
+    window.print();
+    
+    setTimeout(() => {
+      document.title = originalTitle;
+    }, 1000);
   };
 
   // Helper to calculate the global index of the first photo in each page
   const getGlobalStartIndices = () => {
-    let current = 1;
+    let current = settings.startingImageNumber;
     return pages.map(page => {
       const start = current;
       current += page.photos.length;
@@ -356,6 +354,30 @@ export default function App() {
                 </label>
               </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-neutral-300 mb-1">Imagem Inicial</label>
+                <input
+                  type="number"
+                  value={settings.startingImageNumber}
+                  onChange={e => setSettings({...settings, startingImageNumber: Number(e.target.value)})}
+                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white"
+                  min="1"
+                />
+              </div>
+              <div className="flex items-end pb-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.numberImages}
+                    onChange={e => setSettings({...settings, numberImages: e.target.checked})}
+                    className="rounded bg-neutral-800 border-neutral-600 text-blue-500 focus:ring-blue-500"
+                  />
+                  <span className="text-sm font-medium text-neutral-300">Numerar img.</span>
+                </label>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -387,7 +409,7 @@ export default function App() {
 
           <p className="text-xs flex items-start gap-1.5 text-neutral-400 mt-2">
             <Info size={14} className="shrink-0 mt-0.5" />
-            Se o PDF não gerar, abra o aplicativo em uma Nova Guia (ícone no topo direito) devido ao bloqueio de segurança.
+            Se as fotos tiverem a tag Descrição preenchida, as legendas serão extraídas automaticamente.
           </p>
         </div>
       </div>

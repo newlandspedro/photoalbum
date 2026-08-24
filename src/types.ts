@@ -22,4 +22,6 @@ export interface ReportSettings {
   startPageNum: number;
   showPageNum: boolean;
   title: string;
+  numberImages: boolean;
+  startingImageNumber: number;
 }

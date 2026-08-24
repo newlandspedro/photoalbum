@@ -13,11 +13,12 @@ interface PageSheetProps {
   onDeletePhoto: (id: string) => void;
   onRotatePhoto: (id: string) => void;
   onRemovePage: (id: string) => void;
+  isLastPage?: boolean;
 }
 
 export function PageSheet({ 
   page, pageIndex, globalStartIndex, settings, 
-  onUpdatePhoto, onDeletePhoto, onRotatePhoto, onRemovePage 
+  onUpdatePhoto, onDeletePhoto, onRotatePhoto, onRemovePage, isLastPage = false
 }: PageSheetProps) {
   const { setNodeRef, isOver } = useDroppable({ id: page.id });
 
@@ -28,7 +29,7 @@ export function PageSheet({
   return (
     <div
       ref={setNodeRef}
-      className={`page-sheet bg-white text-black mx-auto mb-12 shadow-2xl relative flex flex-col ${isOver && page.photos.length === 0 ? 'ring-2 ring-indigo-500' : ''}`}
+      className={`page-sheet bg-white text-black mx-auto mb-12 shadow-2xl relative flex flex-col ${isOver && page.photos.length === 0 ? 'ring-2 ring-indigo-500' : ''} ${!isLastPage ? 'force-page-break' : ''}`}
       style={{
          width: '100%',
          maxWidth: settings.orientation === 'portrait' ? '800px' : '1131px',

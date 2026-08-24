@@ -200,7 +200,18 @@ export default function App() {
 
   const handlePrint = () => {
     try {
+      const originalTitle = document.title;
+      const date = new Date();
+      const yyyy = date.getFullYear();
+      const mm = String(date.getMonth() + 1).padStart(2, '0');
+      const dd = String(date.getDate()).padStart(2, '0');
+      document.title = `relatoriofotografico_${yyyy}-${mm}-${dd}`;
+      
       window.print();
+      
+      setTimeout(() => {
+        document.title = originalTitle;
+      }, 1000);
     } catch (e) {
       alert("Não foi possível gerar o PDF aqui. Por favor, abra o aplicativo em uma Nova Guia.");
     }
@@ -395,6 +406,7 @@ export default function App() {
               onDeletePhoto={deletePhoto}
               onRotatePhoto={handleRotate}
               onRemovePage={removePage}
+              isLastPage={index === pages.length - 1}
             />
           ))}
         </DndContext>

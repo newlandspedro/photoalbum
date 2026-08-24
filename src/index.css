@@ -27,6 +27,12 @@
     padding: 0;
   }
 
+  /* Reset flex wrappers that can cause bad page breaks in print mode */
+  .min-h-screen {
+    display: block !important;
+    min-height: auto !important;
+  }
+
   .no-print {
     display: none !important;
   }
@@ -43,8 +49,13 @@
     height: 100vh !important;
     margin: 0 !important;
     box-shadow: none !important;
-    page-break-after: always;
     page-break-inside: avoid;
     border: none !important;
+    overflow: hidden !important;
+  }
+  
+  .force-page-break {
+    page-break-after: always;
+    break-after: page;
   }
 }

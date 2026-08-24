@@ -1,0 +1,6 @@
+{
+  "name": "PhotoReport Pro",
+  "description": "Gerador de relatórios fotográficos em PDF para inspeções",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -70,14 +70,14 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
       </div>
 
       {/* Caption Editor */}
-      <div className="shrink-0 flex flex-row items-start justify-start gap-1 w-full px-2 text-black leading-normal" style={{ fontFamily: settings.fontFamily, fontSize: `${settings.captionFontSize}px` }}>
-        <span className="whitespace-nowrap pt-[1px]">
+      <div className="shrink-0 flex flex-row items-baseline justify-start gap-1 w-full px-2 text-black leading-snug" style={{ fontFamily: settings.fontFamily, fontSize: `${settings.captionFontSize}px` }}>
+        <span className="whitespace-nowrap font-medium">
           Imagem {globalIndex} {photo.description ? '-' : ''}
         </span>
         <textarea
           value={photo.description}
           onChange={(e) => onUpdate(photo.id, { description: e.target.value })}
-          className="flex-1 bg-transparent border-b border-transparent hover:border-neutral-300 focus:border-blue-500 outline-none resize-none min-h-[30px] print:border-none print:resize-none overflow-hidden p-0 m-0 leading-normal"
+          className="flex-1 bg-transparent border-b border-transparent hover:border-neutral-300 focus:border-blue-500 outline-none resize-none min-h-[30px] print:border-none print:resize-none overflow-hidden p-0 m-0 leading-snug"
           style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
           placeholder="Adicionar legenda..."
           rows={Math.max(1, photo.description.split('\n').length)}

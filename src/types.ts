@@ -1,9 +1,21 @@
+export type AnchorPosition =
+  | 'center'
+  | 'top left'
+  | 'top'
+  | 'top right'
+  | 'right'
+  | 'bottom right'
+  | 'bottom'
+  | 'bottom left'
+  | 'left';
+
 export interface Photo {
   id: string;
   url: string;
   filename: string;
   description: string;
   fit: 'contain' | 'cover';
+  objectPosition?: AnchorPosition;
   isFullWidth: boolean;
 }
 

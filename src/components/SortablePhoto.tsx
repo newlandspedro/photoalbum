@@ -1,10 +1,23 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { RotateCw, Trash2, GripVertical, Maximize, Minimize, StretchHorizontal, Shrink } from "lucide-react";
-import { Photo, ReportSettings } from "../types";
+import { Photo, ReportSettings, AnchorPosition } from "../types";
 import { cn } from "../lib/utils";
 
+const ANCHOR_POSITIONS: { value: AnchorPosition; label: string; row: number; col: number }[] = [
+  { value: 'center', label: 'Centro', row: 1, col: 1 },
+  { value: 'top left', label: 'Superior Esquerdo', row: 0, col: 0 },
+  { value: 'top', label: 'Superior Central', row: 0, col: 1 },
+  { value: 'top right', label: 'Superior Direito', row: 0, col: 2 },
+  { value: 'right', label: 'Centro Direito', row: 1, col: 2 },
+  { value: 'bottom right', label: 'Inferior Direito', row: 2, col: 2 },
+  { value: 'bottom', label: 'Inferior Central', row: 2, col: 1 },
+  { value: 'bottom left', label: 'Inferior Esquerdo', row: 2, col: 0 },
+  { value: 'left', label: 'Centro Esquerdo', row: 1, col: 0 },
+];
+
 interface SortablePhotoProps {
+  key?: string;
   photo: Photo;
   globalIndex: number;
   settings: ReportSettings;
@@ -20,6 +33,14 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 10 : 1,
+  };
+
+  const currentAnchor = ANCHOR_POSITIONS.find(p => p.value === (photo.objectPosition || 'center')) || ANCHOR_POSITIONS[0];
+
+  const handleNextAnchor = () => {
+    const currentIndex = ANCHOR_POSITIONS.findIndex(p => p.value === (photo.objectPosition || 'center'));
+    const nextIndex = (currentIndex + 1) % ANCHOR_POSITIONS.length;
+    onUpdate(photo.id, { objectPosition: ANCHOR_POSITIONS[nextIndex].value });
   };
 
   return (
@@ -51,6 +72,28 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
         >
           {photo.fit === 'contain' ? <Maximize size={16} /> : <Minimize size={16} />}
         </button>
+        <button 
+          onClick={handleNextAnchor} 
+          className="p-1.5 bg-neutral-800/80 hover:bg-neutral-900 text-white rounded shadow-sm flex items-center justify-center transition-colors" 
+          title={`Ponto de Ancoragem: ${currentAnchor.label} (Clique para alternar entre os 9 pontos)`}
+        >
+          <div className="grid grid-cols-3 gap-[2px] w-3.5 h-3.5 items-center justify-center pointer-events-none">
+            {[0, 1, 2].map((r) =>
+              [0, 1, 2].map((c) => {
+                const isActive = currentAnchor.row === r && currentAnchor.col === c;
+                return (
+                  <div
+                    key={`${r}-${c}`}
+                    className={cn(
+                      "w-1 h-1 rounded-full transition-colors",
+                      isActive ? "bg-amber-400 ring-[1px] ring-amber-300" : "bg-neutral-500/70"
+                    )}
+                  />
+                );
+              })
+            )}
+          </div>
+        </button>
         <button onClick={() => onRotate(photo.id)} className="p-1.5 bg-neutral-800/80 hover:bg-neutral-900 text-white rounded shadow-sm" title="Girar">
           <RotateCw size={16} />
         </button>
@@ -65,7 +108,10 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
           src={photo.url}
           alt={photo.filename}
           className="w-full h-full select-none pointer-events-none"
-          style={{ objectFit: photo.fit }}
+          style={{ 
+            objectFit: photo.fit,
+            objectPosition: photo.objectPosition || 'center'
+          }}
         />
       </div>
 

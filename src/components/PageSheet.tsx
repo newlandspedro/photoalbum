@@ -5,6 +5,7 @@ import { SortablePhoto } from './SortablePhoto';
 import { PageData, ReportSettings, Photo } from '../types';
 
 interface PageSheetProps {
+  key?: string;
   page: PageData;
   pageIndex: number;
   globalStartIndex: number;

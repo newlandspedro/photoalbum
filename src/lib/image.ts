@@ -26,6 +26,7 @@ export async function loadPhoto(file: File): Promise<Photo> {
     filename: file.name,
     description: description.trim(),
     fit: 'contain',
+    objectPosition: 'center',
     isFullWidth: false
   };
 }

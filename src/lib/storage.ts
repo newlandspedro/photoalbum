@@ -1,4 +1,5 @@
 import { PageData, Photo, ReportSettings } from '../types';
+import { optimizeImageBlob } from './image';
 
 const DB_NAME = 'PhotoReportDB';
 const DB_VERSION = 1;
@@ -94,7 +95,8 @@ export async function saveActiveProjectToDB(settings: ReportSettings, pages: Pag
           page.photos.map(async (photo) => {
             let blob: Blob;
             try {
-              blob = await urlToBlob(photo.url);
+              const rawBlob = await urlToBlob(photo.url);
+              blob = await optimizeImageBlob(rawBlob, 2048, 0.88);
             } catch (e) {
               console.warn(`Não foi possível obter blob da foto ${photo.id}, criando blob vazio`, e);
               blob = new Blob([], { type: 'image/jpeg' });
@@ -196,46 +198,81 @@ export async function clearActiveProjectFromDB(): Promise<void> {
 
 /**
  * Exporta o projeto completo para um arquivo local .json
- * Nome do arquivo: <titulo>_YYYY-MM-DD-HH-MM-SS.json
+ * Utiliza otimização de imagens e escrita em blocos (chunks) para evitar
+ * estouro de memória do JavaScript ("RangeError: Invalid string length")
+ * mesmo com dezenas de fotos de alta resolução.
  */
 export async function exportProjectToFile(settings: ReportSettings, pages: PageData[]): Promise<string> {
-  // Converte todas as fotos para base64/dataUrl
-  const exportedPages: ExportedPageData[] = await Promise.all(
-    pages.map(async (page) => {
-      const exportedPhotos: ExportedPhoto[] = await Promise.all(
-        page.photos.map(async (photo) => {
-          let dataUrl = '';
-          try {
-            const blob = await urlToBlob(photo.url);
-            dataUrl = await blobToDataUrl(blob);
-          } catch (e) {
-            console.error('Erro ao converter foto para base64:', photo.id, e);
-          }
-          return {
-            id: photo.id,
-            filename: photo.filename,
-            description: photo.description,
-            fit: photo.fit,
-            objectPosition: photo.objectPosition,
-            isFullWidth: photo.isFullWidth,
-            dataUrl
-          };
-        })
-      );
-      return { id: page.id, photos: exportedPhotos };
-    })
-  );
+  // Converte fotos em lotes com otimização prévia
+  const exportedPages: ExportedPageData[] = [];
 
-  const exportData: ExportedProjectFile = {
-    version: 1,
-    app: 'PhotoReportGenerator',
-    exportedAt: new Date().toISOString(),
-    settings,
-    pages: exportedPages
-  };
+  for (const page of pages) {
+    const exportedPhotos: ExportedPhoto[] = [];
+    for (const photo of page.photos) {
+      let dataUrl = '';
+      try {
+        const rawBlob = await urlToBlob(photo.url);
+        // Garante que a imagem esteja otimizada para evitar arquivos de 200MB+
+        const optimizedBlob = await optimizeImageBlob(rawBlob, 2048, 0.88);
+        dataUrl = await blobToDataUrl(optimizedBlob);
+      } catch (e) {
+        console.error('Erro ao processar foto para exportação:', photo.id, e);
+      }
 
-  const jsonString = JSON.stringify(exportData, null, 2);
-  const blob = new Blob([jsonString], { type: 'application/json' });
+      exportedPhotos.push({
+        id: photo.id,
+        filename: photo.filename,
+        description: photo.description,
+        fit: photo.fit,
+        objectPosition: photo.objectPosition,
+        isFullWidth: photo.isFullWidth,
+        dataUrl
+      });
+    }
+    exportedPages.push({ id: page.id, photos: exportedPhotos });
+  }
+
+  // Constrói o Blob do JSON diretamente por partes (chunks)
+  // Isso evita alocar uma única string gigantesca de centenas de megabytes na heap do JS
+  const chunks: string[] = [];
+  chunks.push('{\n');
+  chunks.push('  "version": 1,\n');
+  chunks.push('  "app": "PhotoReportGenerator",\n');
+  chunks.push(`  "exportedAt": ${JSON.stringify(new Date().toISOString())},\n`);
+  chunks.push(`  "settings": ${JSON.stringify(settings, null, 2).replace(/\n/g, '\n  ')},\n`);
+  chunks.push('  "pages": [\n');
+
+  for (let pIdx = 0; pIdx < exportedPages.length; pIdx++) {
+    const page = exportedPages[pIdx];
+    chunks.push('    {\n');
+    chunks.push(`      "id": ${JSON.stringify(page.id)},\n`);
+    chunks.push('      "photos": [\n');
+
+    for (let phIdx = 0; phIdx < page.photos.length; phIdx++) {
+      const photo = page.photos[phIdx];
+      const photoJson = JSON.stringify(photo, null, 2);
+      const indented = photoJson.split('\n').map(line => '        ' + line).join('\n');
+      chunks.push(indented);
+      if (phIdx < page.photos.length - 1) {
+        chunks.push(',\n');
+      } else {
+        chunks.push('\n');
+      }
+    }
+
+    chunks.push('      ]\n');
+    chunks.push('    }');
+    if (pIdx < exportedPages.length - 1) {
+      chunks.push(',\n');
+    } else {
+      chunks.push('\n');
+    }
+  }
+
+  chunks.push('  ]\n');
+  chunks.push('}\n');
+
+  const blob = new Blob(chunks, { type: 'application/json' });
   const downloadUrl = URL.createObjectURL(blob);
 
   // Formata o timestamp solicitado: YYYY-MM-DD-HH-MM-SS
@@ -260,7 +297,7 @@ export async function exportProjectToFile(settings: ReportSettings, pages: PageD
   link.click();
   document.body.removeChild(link);
 
-  setTimeout(() => URL.revokeObjectURL(downloadUrl), 5000);
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 8000);
   return fileName;
 }
 
@@ -281,9 +318,15 @@ export async function importProjectFromFile(file: File): Promise<{ settings: Rep
         page.photos.map(async (p) => {
           let url = '';
           if (p.dataUrl) {
-            const res = await fetch(p.dataUrl);
-            const blob = await res.blob();
-            url = URL.createObjectURL(blob);
+            try {
+              const res = await fetch(p.dataUrl);
+              const rawBlob = await res.blob();
+              // Otimiza blob para liberar memória se o arquivo original era de 200MB+
+              const optimizedBlob = await optimizeImageBlob(rawBlob, 2048, 0.88);
+              url = URL.createObjectURL(optimizedBlob);
+            } catch (err) {
+              console.error('Erro ao reconstruir imagem:', p.filename, err);
+            }
           }
           return {
             id: p.id || crypto.randomUUID(),
@@ -305,3 +348,4 @@ export async function importProjectFromFile(file: File): Promise<{ settings: Rep
     pages: pages.length > 0 ? pages : [{ id: crypto.randomUUID(), photos: [] }]
   };
 }
+

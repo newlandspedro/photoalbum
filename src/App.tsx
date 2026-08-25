@@ -345,10 +345,11 @@ export default function App() {
     try {
       setIsExporting(true);
       const savedFileName = await exportProjectToFile(settings, pages);
-      showToast(`Projeto salvo: ${savedFileName}`, 'success');
-    } catch (error) {
+      showToast(`Projeto salvo com sucesso: ${savedFileName}`, 'success');
+    } catch (error: any) {
       console.error('Erro ao exportar projeto:', error);
-      showToast('Erro ao exportar o arquivo do projeto.', 'error');
+      const msg = error?.message ? `Erro ao exportar: ${error.message}` : 'Erro ao exportar o arquivo do projeto.';
+      showToast(msg, 'error');
     } finally {
       setIsExporting(false);
     }
@@ -366,9 +367,10 @@ export default function App() {
       setPages(imported.pages);
       await saveActiveProjectToDB(imported.settings, imported.pages);
       showToast('Projeto carregado com sucesso!', 'success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao carregar projeto:', error);
-      showToast('Arquivo de projeto inválido ou incompatível.', 'error');
+      const msg = error?.message ? `Falha ao carregar: ${error.message}` : 'Arquivo de projeto inválido ou incompatível.';
+      showToast(msg, 'error');
     } finally {
       setIsImporting(false);
     }

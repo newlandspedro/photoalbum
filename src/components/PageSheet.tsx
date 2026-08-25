@@ -30,7 +30,7 @@ export function PageSheet({
   return (
     <div
       ref={setNodeRef}
-      className={`page-sheet bg-white text-black mx-auto mb-12 shadow-2xl relative flex flex-col ${isOver && page.photos.length === 0 ? 'ring-2 ring-indigo-500' : ''} ${!isLastPage ? 'force-page-break' : ''}`}
+      className={`page-sheet bg-white text-black mx-auto mb-12 shadow-2xl relative flex flex-col transition-all ${isOver ? 'ring-4 ring-blue-500 shadow-blue-500/20' : ''} ${!isLastPage ? 'force-page-break' : ''}`}
       style={{
          width: '100%',
          maxWidth: settings.orientation === 'portrait' ? '800px' : '1131px',

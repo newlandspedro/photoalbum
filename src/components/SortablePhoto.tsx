@@ -32,7 +32,7 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    zIndex: isDragging ? 10 : 1,
+    zIndex: isDragging ? 20 : 1,
   };
 
   const currentAnchor = ANCHOR_POSITIONS.find(p => p.value === (photo.objectPosition || 'center')) || ANCHOR_POSITIONS[0];
@@ -47,34 +47,37 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
     <div
       ref={setNodeRef}
       style={style}
+      {...attributes}
+      {...listeners}
       className={cn(
-        "relative group flex flex-col h-full w-full min-h-0",
+        "relative group flex flex-col h-full w-full min-h-0 select-none cursor-grab active:cursor-grabbing touch-none transition-shadow",
         photo.isFullWidth && "col-span-full",
-        isDragging && "opacity-50 ring-2 ring-indigo-500 rounded-lg shadow-xl"
+        isDragging && "opacity-30 ring-2 ring-blue-500 rounded-lg shadow-xl"
       )}
     >
       {/* Overlay controls - Hidden when printing */}
-      <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 z-10 no-print transition-opacity">
-        <div {...attributes} {...listeners} className="p-1.5 bg-neutral-800/80 hover:bg-neutral-900 text-white rounded cursor-grab shadow-sm">
-          <GripVertical size={16} />
-        </div>
+      <div 
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 z-30 no-print transition-opacity cursor-default"
+      >
         <button 
           onClick={() => onUpdate(photo.id, { isFullWidth: !photo.isFullWidth })} 
-          className="p-1.5 bg-neutral-800/80 hover:bg-neutral-900 text-white rounded shadow-sm" 
+          className="p-1.5 bg-neutral-800/90 hover:bg-neutral-900 text-white rounded shadow-sm transition-colors" 
           title={photo.isFullWidth ? "Tamanho Normal" : "Ocupar Linha Inteira"}
         >
           {photo.isFullWidth ? <Shrink size={16} /> : <StretchHorizontal size={16} />}
         </button>
         <button 
           onClick={() => onUpdate(photo.id, { fit: photo.fit === 'contain' ? 'cover' : 'contain' })} 
-          className="p-1.5 bg-neutral-800/80 hover:bg-neutral-900 text-white rounded shadow-sm" 
+          className="p-1.5 bg-neutral-800/90 hover:bg-neutral-900 text-white rounded shadow-sm transition-colors" 
           title={photo.fit === 'contain' ? "Preencher Espaço" : "Ajustar à Imagem"}
         >
           {photo.fit === 'contain' ? <Maximize size={16} /> : <Minimize size={16} />}
         </button>
         <button 
           onClick={handleNextAnchor} 
-          className="p-1.5 bg-neutral-800/80 hover:bg-neutral-900 text-white rounded shadow-sm flex items-center justify-center transition-colors" 
+          className="p-1.5 bg-neutral-800/90 hover:bg-neutral-900 text-white rounded shadow-sm flex items-center justify-center transition-colors" 
           title={`Ponto de Ancoragem: ${currentAnchor.label} (Clique para alternar entre os 9 pontos)`}
         >
           <div className="grid grid-cols-3 gap-[2px] w-3.5 h-3.5 items-center justify-center pointer-events-none">
@@ -94,20 +97,29 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
             )}
           </div>
         </button>
-        <button onClick={() => onRotate(photo.id)} className="p-1.5 bg-neutral-800/80 hover:bg-neutral-900 text-white rounded shadow-sm" title="Girar">
+        <button 
+          onClick={() => onRotate(photo.id)} 
+          className="p-1.5 bg-neutral-800/90 hover:bg-neutral-900 text-white rounded shadow-sm transition-colors" 
+          title="Girar"
+        >
           <RotateCw size={16} />
         </button>
-        <button onClick={() => onDelete(photo.id)} className="p-1.5 bg-red-600/90 hover:bg-red-700 text-white rounded shadow-sm" title="Excluir">
+        <button 
+          onClick={() => onDelete(photo.id)} 
+          className="p-1.5 bg-red-600/90 hover:bg-red-700 text-white rounded shadow-sm transition-colors" 
+          title="Excluir"
+        >
           <Trash2 size={16} />
         </button>
       </div>
 
       {/* Image Display */}
-      <div className="flex-1 min-h-0 relative mb-3 flex items-center justify-center bg-transparent">
+      <div className="flex-1 min-h-0 relative mb-3 flex items-center justify-center bg-transparent pointer-events-none">
         <img
           src={photo.url}
           alt={photo.filename}
-          className="w-full h-full select-none pointer-events-none"
+          draggable={false}
+          className="w-full h-full select-none pointer-events-none rounded-sm"
           style={{ 
             objectFit: photo.fit,
             objectPosition: photo.objectPosition || 'center'
@@ -116,9 +128,13 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
       </div>
 
       {/* Caption Editor */}
-      <div className="shrink-0 flex flex-row items-baseline justify-start gap-1 w-full px-2 text-black leading-snug" style={{ fontFamily: settings.fontFamily, fontSize: `${settings.captionFontSize}px` }}>
+      <div 
+        onPointerDown={(e) => e.stopPropagation()}
+        className="shrink-0 flex flex-row items-baseline justify-start gap-1 w-full px-2 text-black leading-snug cursor-text" 
+        style={{ fontFamily: settings.fontFamily, fontSize: `${settings.captionFontSize}px` }}
+      >
         {settings.numberImages && (
-          <span className="whitespace-nowrap font-medium">
+          <span className="whitespace-nowrap font-medium select-none">
             Imagem {globalIndex} {photo.description ? '-' : ''}
           </span>
         )}

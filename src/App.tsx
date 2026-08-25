@@ -5,8 +5,9 @@
 
 import { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { 
-  DndContext, closestCenter, KeyboardSensor, PointerSensor, 
-  useSensor, useSensors, DragEndEvent, DragOverEvent
+  DndContext, closestCorners, pointerWithin, KeyboardSensor, PointerSensor, 
+  useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay,
+  CollisionDetection
 } from '@dnd-kit/core';
 import { 
   Printer, UploadCloud, Settings2, Image as ImageIcon, Plus, Info, 
@@ -27,6 +28,7 @@ import {
 export default function App() {
   const [pages, setPages] = useState<PageData[]>([{ id: crypto.randomUUID(), photos: [] }]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle'>('idle');
@@ -118,83 +120,136 @@ export default function App() {
   }, []);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, { 
+      activationConstraint: { 
+        distance: 4 
+      } 
+    }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
-  const findContainer = (id: string) => {
-    const page = pages.find(p => p.id === id);
+  const findContainer = useCallback((id: string, currentPages = pages) => {
+    const page = currentPages.find(p => p.id === id);
     if (page) return page.id;
-    const containingPage = pages.find(p => p.photos.some(photo => photo.id === id));
+    const containingPage = currentPages.find(p => p.photos.some(photo => photo.id === id));
     return containingPage?.id;
+  }, [pages]);
+
+  const collisionDetectionStrategy: CollisionDetection = useCallback((args) => {
+    // Check if pointer is over any target
+    const pointerCollisions = pointerWithin(args);
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions;
+    }
+    return closestCorners(args);
+  }, []);
+
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(String(event.active.id));
   };
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
-    const overId = over?.id;
-    if (!overId) return;
+    if (!over) return;
 
-    const activeContainer = findContainer(active.id as string);
-    const overContainer = findContainer(overId as string);
+    const activeItemId = String(active.id);
+    const overItemId = String(over.id);
+
+    const activeContainer = findContainer(activeItemId);
+    const overContainer = findContainer(overItemId);
 
     if (!activeContainer || !overContainer || activeContainer === overContainer) {
       return;
     }
 
     setPages((prev) => {
-      const activeItems = prev.find(p => p.id === activeContainer)!.photos;
-      const overItems = prev.find(p => p.id === overContainer)!.photos;
+      const activePage = prev.find(p => p.id === activeContainer);
+      const overPage = prev.find(p => p.id === overContainer);
 
-      const activeIndex = activeItems.findIndex(p => p.id === active.id);
-      const overIndex = overItems.findIndex(p => p.id === overId);
+      if (!activePage || !overPage) return prev;
 
-      let newIndex;
-      if (overId in prev.map(p => p.id)) {
-        newIndex = overItems.length + 1;
-      } else {
-        const isBelowOverItem =
-          over &&
-          active.rect.current.translated &&
-          active.rect.current.translated.top > over.rect.top + over.rect.height;
+      const activeIndex = activePage.photos.findIndex(p => p.id === activeItemId);
+      if (activeIndex === -1) return prev;
 
-        const modifier = isBelowOverItem ? 1 : 0;
-        newIndex = overIndex >= 0 ? overIndex + modifier : overItems.length + 1;
-      }
+      const overIndex = overPage.photos.findIndex(p => p.id === overItemId);
+      const newIndex = overIndex >= 0 ? overIndex : overPage.photos.length;
 
-      const newPages = JSON.parse(JSON.stringify(prev)); 
-      const activePageIdx = newPages.findIndex((p: PageData) => p.id === activeContainer);
-      const overPageIdx = newPages.findIndex((p: PageData) => p.id === overContainer);
+      const activePhotos = [...activePage.photos];
+      const [movedPhoto] = activePhotos.splice(activeIndex, 1);
 
-      const [item] = newPages[activePageIdx].photos.splice(activeIndex, 1);
-      newPages[overPageIdx].photos.splice(newIndex, 0, item);
+      const overPhotos = [...overPage.photos];
+      overPhotos.splice(newIndex, 0, movedPhoto);
 
-      return newPages;
+      return prev.map(p => {
+        if (p.id === activeContainer) return { ...p, photos: activePhotos };
+        if (p.id === overContainer) return { ...p, photos: overPhotos };
+        return p;
+      });
     });
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
     if (!over) return;
 
-    const activeContainer = findContainer(active.id as string);
-    const overContainer = findContainer(over.id as string);
+    const activeItemId = String(active.id);
+    const overItemId = String(over.id);
 
-    if (activeContainer && overContainer && activeContainer === overContainer) {
-      const activeIndex = pages.find(p => p.id === activeContainer)!.photos.findIndex(p => p.id === active.id);
-      const overIndex = pages.find(p => p.id === overContainer)!.photos.findIndex(p => p.id === over.id);
+    const activeContainer = findContainer(activeItemId);
+    const overContainer = findContainer(overItemId);
 
-      if (activeIndex !== overIndex) {
+    if (!activeContainer || !overContainer) return;
+
+    if (activeContainer === overContainer) {
+      const containerPage = pages.find(p => p.id === activeContainer);
+      if (!containerPage) return;
+
+      const activeIndex = containerPage.photos.findIndex(p => p.id === activeItemId);
+      const overIndex = containerPage.photos.findIndex(p => p.id === overItemId);
+
+      if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
         setPages((prev) => {
-          const newPages = [...prev];
-          const pageIdx = newPages.findIndex(p => p.id === activeContainer);
-          newPages[pageIdx] = {
-            ...newPages[pageIdx],
-            photos: arrayMove(newPages[pageIdx].photos, activeIndex, overIndex),
-          };
-          return newPages;
+          return prev.map(p => {
+            if (p.id === activeContainer) {
+              return {
+                ...p,
+                photos: arrayMove(p.photos, activeIndex, overIndex),
+              };
+            }
+            return p;
+          });
         });
       }
+    } else {
+      setPages((prev) => {
+        const activePage = prev.find(p => p.id === activeContainer);
+        const overPage = prev.find(p => p.id === overContainer);
+        if (!activePage || !overPage) return prev;
+
+        const activeIndex = activePage.photos.findIndex(p => p.id === activeItemId);
+        if (activeIndex === -1) return prev;
+
+        const overIndex = overPage.photos.findIndex(p => p.id === overItemId);
+        const newIndex = overIndex >= 0 ? overIndex : overPage.photos.length;
+
+        const activePhotos = [...activePage.photos];
+        const [movedPhoto] = activePhotos.splice(activeIndex, 1);
+
+        const overPhotos = [...overPage.photos];
+        overPhotos.splice(newIndex, 0, movedPhoto);
+
+        return prev.map(p => {
+          if (p.id === activeContainer) return { ...p, photos: activePhotos };
+          if (p.id === overContainer) return { ...p, photos: overPhotos };
+          return p;
+        });
+      });
     }
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
   };
 
   const processFiles = async (files: FileList | File[]) => {
@@ -371,6 +426,7 @@ export default function App() {
     });
   };
   const startIndices = getGlobalStartIndices();
+  const activePhoto = activeId ? pages.flatMap(p => p.photos).find(p => p.id === activeId) : null;
 
   return (
     <div className="min-h-screen bg-neutral-900 flex font-sans text-neutral-200" onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
@@ -670,7 +726,14 @@ export default function App() {
 
       {/* Main Content (WYSIWYG Print Area) */}
       <div className="flex-1 p-8 h-screen overflow-y-auto main-print-area custom-scrollbar relative">
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragOver={handleDragOver} onDragEnd={handleDragEnd}>
+        <DndContext 
+          sensors={sensors} 
+          collisionDetection={collisionDetectionStrategy} 
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver} 
+          onDragEnd={handleDragEnd}
+          onDragCancel={handleDragCancel}
+        >
           {pages.map((page, index) => (
             <PageSheet
               key={page.id}
@@ -685,6 +748,26 @@ export default function App() {
               isLastPage={index === pages.length - 1}
             />
           ))}
+
+          <DragOverlay dropAnimation={null}>
+            {activePhoto ? (
+              <div className="w-64 h-56 bg-white p-2 rounded-lg shadow-2xl border-2 border-blue-500 flex flex-col pointer-events-none opacity-95">
+                <div className="flex-1 relative mb-1 flex items-center justify-center overflow-hidden">
+                  <img
+                    src={activePhoto.url}
+                    alt={activePhoto.filename}
+                    className="w-full h-full object-contain select-none"
+                    draggable={false}
+                  />
+                </div>
+                {activePhoto.description ? (
+                  <p className="text-xs text-neutral-800 truncate font-medium">
+                    {activePhoto.description}
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
+          </DragOverlay>
         </DndContext>
 
         <div className="max-w-4xl mx-auto flex justify-center mb-16 no-print">

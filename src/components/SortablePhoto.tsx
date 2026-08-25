@@ -130,6 +130,10 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
       {/* Caption Editor */}
       <div 
         onPointerDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+        onKeyUp={(e) => e.stopPropagation()}
         className="shrink-0 flex flex-row items-baseline justify-start gap-1 w-full px-2 text-black leading-snug cursor-text" 
         style={{ fontFamily: settings.fontFamily, fontSize: `${settings.captionFontSize}px` }}
       >
@@ -141,6 +145,9 @@ export function SortablePhoto({ photo, globalIndex, settings, onUpdate, onDelete
         <textarea
           value={photo.description}
           onChange={(e) => onUpdate(photo.id, { description: e.target.value })}
+          onKeyDown={(e) => e.stopPropagation()}
+          onKeyUp={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
           className="flex-1 bg-transparent border-b border-transparent hover:border-neutral-300 focus:border-blue-500 outline-none resize-none min-h-[30px] print:border-none print:resize-none overflow-hidden p-0 m-0 leading-snug"
           style={{ fontFamily: 'inherit', fontSize: 'inherit' }}
           placeholder="Adicionar legenda..."

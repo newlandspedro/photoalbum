@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useRef, useEffect, type DragEvent } from 'react';
 import { 
-  DndContext, closestCorners, pointerWithin, KeyboardSensor, PointerSensor, 
+  DndContext, closestCorners, pointerWithin, PointerSensor, 
   useSensor, useSensors, DragEndEvent, DragOverEvent, DragStartEvent, DragOverlay,
   CollisionDetection
 } from '@dnd-kit/core';
@@ -13,7 +13,7 @@ import {
   Printer, UploadCloud, Settings2, Image as ImageIcon, Plus, Info, 
   Save, FolderOpen, RotateCcw, Check, Loader2, FileText
 } from 'lucide-react';
-import { arrayMove, sortableKeyboardCoordinates } from '@dnd-kit/sortable';
+import { arrayMove } from '@dnd-kit/sortable';
 import { loadPhoto, rotateImage } from './lib/image';
 import { Photo, ReportSettings, PageData } from './types';
 import { PageSheet } from './components/PageSheet';
@@ -27,8 +27,8 @@ import {
 
 export default function App() {
   const [pages, setPages] = useState<PageData[]>([{ id: crypto.randomUUID(), photos: [] }]);
-  const [isProcessing, setIsProcessing] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle'>('idle');
@@ -124,8 +124,7 @@ export default function App() {
       activationConstraint: { 
         distance: 4 
       } 
-    }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    })
   );
 
   const findContainer = useCallback((id: string, currentPages = pages) => {
@@ -146,6 +145,10 @@ export default function App() {
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(String(event.active.id));
+  };
+
+  const handleDragCancel = () => {
+    setActiveId(null);
   };
 
   const handleDragOver = (event: DragOverEvent) => {
@@ -246,10 +249,6 @@ export default function App() {
         });
       });
     }
-  };
-
-  const handleDragCancel = () => {
-    setActiveId(null);
   };
 
   const processFiles = async (files: FileList | File[]) => {
@@ -749,9 +748,9 @@ export default function App() {
             />
           ))}
 
-          <DragOverlay dropAnimation={null}>
+          <DragOverlay dropAnimation={{ duration: 150, easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)' }}>
             {activePhoto ? (
-              <div className="w-64 h-56 bg-white p-2 rounded-lg shadow-2xl border-2 border-blue-500 flex flex-col pointer-events-none opacity-95">
+              <div className="w-56 h-48 bg-white p-2 rounded-lg shadow-2xl border-2 border-blue-500 flex flex-col pointer-events-none opacity-95">
                 <div className="flex-1 relative mb-1 flex items-center justify-center overflow-hidden">
                   <img
                     src={activePhoto.url}

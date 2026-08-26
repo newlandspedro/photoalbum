@@ -1,5 +1,5 @@
 import { PageData, Photo, ReportSettings } from '../types';
-import { optimizeImageBlob } from './image';
+import { optimizeImageBlob, getQualityConfig } from './image';
 
 const DB_NAME = 'PhotoReportDB';
 const DB_VERSION = 1;
@@ -87,6 +87,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 export async function saveActiveProjectToDB(settings: ReportSettings, pages: PageData[]): Promise<void> {
   try {
     const db = await openDB();
+    const { maxDimension, quality } = getQualityConfig(settings.printQuality || '300dpi');
 
     // Converte todas as fotos para Blobs armazenáveis
     const storedPages: StoredPageData[] = await Promise.all(
@@ -96,7 +97,7 @@ export async function saveActiveProjectToDB(settings: ReportSettings, pages: Pag
             let blob: Blob;
             try {
               const rawBlob = await urlToBlob(photo.url);
-              blob = await optimizeImageBlob(rawBlob, 2048, 0.88);
+              blob = await optimizeImageBlob(rawBlob, maxDimension, quality);
             } catch (e) {
               console.warn(`Não foi possível obter blob da foto ${photo.id}, criando blob vazio`, e);
               blob = new Blob([], { type: 'image/jpeg' });
@@ -203,6 +204,7 @@ export async function clearActiveProjectFromDB(): Promise<void> {
  * mesmo com dezenas de fotos de alta resolução.
  */
 export async function exportProjectToFile(settings: ReportSettings, pages: PageData[]): Promise<string> {
+  const { maxDimension, quality } = getQualityConfig(settings.printQuality || '300dpi');
   // Converte fotos em lotes com otimização prévia
   const exportedPages: ExportedPageData[] = [];
 
@@ -213,7 +215,7 @@ export async function exportProjectToFile(settings: ReportSettings, pages: PageD
       try {
         const rawBlob = await urlToBlob(photo.url);
         // Garante que a imagem esteja otimizada para evitar arquivos de 200MB+
-        const optimizedBlob = await optimizeImageBlob(rawBlob, 2048, 0.88);
+        const optimizedBlob = await optimizeImageBlob(rawBlob, maxDimension, quality);
         dataUrl = await blobToDataUrl(optimizedBlob);
       } catch (e) {
         console.error('Erro ao processar foto para exportação:', photo.id, e);
@@ -312,6 +314,8 @@ export async function importProjectFromFile(file: File): Promise<{ settings: Rep
     throw new Error('Arquivo de projeto inválido ou corrompido.');
   }
 
+  const { maxDimension, quality } = getQualityConfig(data.settings?.printQuality || '300dpi');
+
   const pages: PageData[] = await Promise.all(
     data.pages.map(async (page) => {
       const photos: Photo[] = await Promise.all(
@@ -322,7 +326,7 @@ export async function importProjectFromFile(file: File): Promise<{ settings: Rep
               const res = await fetch(p.dataUrl);
               const rawBlob = await res.blob();
               // Otimiza blob para liberar memória se o arquivo original era de 200MB+
-              const optimizedBlob = await optimizeImageBlob(rawBlob, 2048, 0.88);
+              const optimizedBlob = await optimizeImageBlob(rawBlob, maxDimension, quality);
               url = URL.createObjectURL(optimizedBlob);
             } catch (err) {
               console.error('Erro ao reconstruir imagem:', p.filename, err);
@@ -344,7 +348,10 @@ export async function importProjectFromFile(file: File): Promise<{ settings: Rep
   );
 
   return {
-    settings: data.settings,
+    settings: {
+      ...data.settings,
+      printQuality: data.settings?.printQuality || '300dpi'
+    },
     pages: pages.length > 0 ? pages : [{ id: crypto.randomUUID(), photos: [] }]
   };
 }

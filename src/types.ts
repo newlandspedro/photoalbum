@@ -24,6 +24,8 @@ export interface PageData {
   photos: Photo[];
 }
 
+export type PrintQualityPreset = 'ultra' | '300dpi' | 'compact' | 'screen' | 'screen_72dpi';
+
 export interface ReportSettings {
   paperSize: 'A4' | 'letter';
   orientation: 'portrait' | 'landscape';
@@ -36,4 +38,5 @@ export interface ReportSettings {
   title: string;
   numberImages: boolean;
   startingImageNumber: number;
+  printQuality?: PrintQualityPreset;
 }

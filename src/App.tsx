@@ -11,11 +11,11 @@ import {
 } from '@dnd-kit/core';
 import { 
   Printer, UploadCloud, Settings2, Image as ImageIcon, Plus, Info, 
-  Save, FolderOpen, RotateCcw, Check, Loader2, FileText
+  Save, FolderOpen, RotateCcw, Check, Loader2, FileText, Sparkles
 } from 'lucide-react';
 import { arrayMove } from '@dnd-kit/sortable';
-import { loadPhoto, rotateImage } from './lib/image';
-import { Photo, ReportSettings, PageData } from './types';
+import { loadPhoto, rotateImage, optimizePhotoUrl, getQualityConfig } from './lib/image';
+import { Photo, ReportSettings, PageData, PrintQualityPreset } from './types';
 import { PageSheet } from './components/PageSheet';
 import { 
   saveActiveProjectToDB, 
@@ -29,6 +29,8 @@ export default function App() {
   const [pages, setPages] = useState<PageData[]>([{ id: crypto.randomUUID(), photos: [] }]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [optimizationProgress, setOptimizationProgress] = useState<{ current: number; total: number } | null>(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'idle'>('idle');
@@ -47,7 +49,8 @@ export default function App() {
     showPageNum: true,
     title: 'Relatório Fotográfico',
     numberImages: true,
-    startingImageNumber: 1
+    startingImageNumber: 1,
+    printQuality: '300dpi'
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -263,10 +266,11 @@ export default function App() {
 
     setIsProcessing(true);
     const newPhotos: Photo[] = [];
+    const qualityPreset = settings.printQuality || '300dpi';
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       if (file.type.startsWith('image/')) {
-        const p = await loadPhoto(file);
+        const p = await loadPhoto(file, qualityPreset);
         newPhotos.push(p);
       }
     }
@@ -281,7 +285,7 @@ export default function App() {
         };
         return newPages;
       });
-      showToast(`${newPhotos.length} foto(s) adicionada(s) ao relatório.`);
+      showToast(`${newPhotos.length} foto(s) adicionada(s) e otimizada(s) a 300 DPI.`);
     }
     setIsProcessing(false);
   };
@@ -328,10 +332,53 @@ export default function App() {
     const photo = allPhotos.find(p => p.id === id);
     if (!photo) return;
     try {
-      const newUrl = await rotateImage(photo.url, 90);
+      const newUrl = await rotateImage(photo.url, 90, settings.printQuality || '300dpi');
       updatePhoto(id, { url: newUrl });
     } catch (e) {
       console.error('Failed to rotate', e);
+    }
+  };
+
+  const optimizeProjectPhotos = async (qualityPreset: PrintQualityPreset = settings.printQuality || '300dpi') => {
+    const totalPhotos = pages.reduce((acc, p) => acc + p.photos.length, 0);
+    if (totalPhotos === 0) {
+      showToast('Nenhuma foto no relatório para otimizar.', 'info');
+      return;
+    }
+
+    setIsOptimizing(true);
+    setOptimizationProgress({ current: 0, total: totalPhotos });
+
+    const { maxDimension, quality, label } = getQualityConfig(qualityPreset);
+    let processed = 0;
+
+    try {
+      const updatedPages = await Promise.all(
+        pages.map(async (page) => {
+          const updatedPhotos = await Promise.all(
+            page.photos.map(async (photo) => {
+              const newUrl = await optimizePhotoUrl(photo.url, maxDimension, quality);
+              processed++;
+              setOptimizationProgress({ current: processed, total: totalPhotos });
+              return {
+                ...photo,
+                url: newUrl
+              };
+            })
+          );
+          return { ...page, photos: updatedPhotos };
+        })
+      );
+
+      setPages(updatedPages);
+      await saveActiveProjectToDB({ ...settings, printQuality: qualityPreset }, updatedPages);
+      showToast(`${totalPhotos} fotos otimizadas para o padrão ${label}!`, 'success');
+    } catch (err) {
+      console.error('Erro na otimização de fotos:', err);
+      showToast('Erro ao otimizar fotos.', 'error');
+    } finally {
+      setIsOptimizing(false);
+      setOptimizationProgress(null);
     }
   };
 
@@ -366,7 +413,8 @@ export default function App() {
       setSettings(imported.settings);
       setPages(imported.pages);
       await saveActiveProjectToDB(imported.settings, imported.pages);
-      showToast('Projeto carregado com sucesso!', 'success');
+      const photoCount = imported.pages.reduce((acc, p) => acc + p.photos.length, 0);
+      showToast(`Projeto carregado (${photoCount} fotos otimizadas para 300 DPI)!`, 'success');
     } catch (error: any) {
       console.error('Erro ao carregar projeto:', error);
       const msg = error?.message ? `Falha ao carregar: ${error.message}` : 'Arquivo de projeto inválido ou incompatível.';
@@ -391,7 +439,8 @@ export default function App() {
       showPageNum: true,
       title: 'Relatório Fotográfico',
       numberImages: true,
-      startingImageNumber: 1
+      startingImageNumber: 1,
+      printQuality: '300dpi'
     };
 
     const emptyPages: PageData[] = [{ id: crypto.randomUUID(), photos: [] }];
@@ -402,19 +451,57 @@ export default function App() {
     showToast('Novo relatório iniciado.', 'info');
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    const totalPhotos = pages.reduce((acc, p) => acc + p.photos.length, 0);
+    
+    // Otimiza todas as fotos para o padrão selecionado antes de abrir a caixa de diálogo de impressão
+    if (totalPhotos > 0) {
+      setIsProcessing(true);
+      const { maxDimension, quality, label } = getQualityConfig(settings.printQuality || '300dpi');
+      showToast(`Preparando ${totalPhotos} fotos em qualidade ${label} para o PDF...`, 'info');
+      
+      try {
+        const updatedPages = await Promise.all(
+          pages.map(async (page) => {
+            const updatedPhotos = await Promise.all(
+              page.photos.map(async (photo) => {
+                const newUrl = await optimizePhotoUrl(photo.url, maxDimension, quality);
+                return { ...photo, url: newUrl };
+              })
+            );
+            return { ...page, photos: updatedPhotos };
+          })
+        );
+        setPages(updatedPages);
+        
+        // Aguarda decodificação de imagens no navegador
+        await new Promise((r) => setTimeout(r, 200));
+      } catch (e) {
+        console.warn('Otimização rápida antes da impressão falhou:', e);
+      } finally {
+        setIsProcessing(false);
+      }
+    }
+
     const originalTitle = document.title;
     const date = new Date();
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
     const dd = String(date.getDate()).padStart(2, '0');
-    document.title = `relatoriofotografico_${yyyy}-${mm}-${dd}`;
+
+    const safeTitle = (settings.title || 'relatorio_fotografico')
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9_\- ]/g, '')
+      .trim()
+      .replace(/\s+/g, '_') || 'relatorio';
+
+    document.title = `${safeTitle}_${yyyy}-${mm}-${dd}`;
     
     window.print();
     
     setTimeout(() => {
       document.title = originalTitle;
-    }, 1000);
+    }, 1500);
   };
 
   // Helper to calculate the global index of the first photo in each page
@@ -688,6 +775,49 @@ export default function App() {
                   <span className="text-sm font-medium text-neutral-300">Numerar img.</span>
                 </label>
               </div>
+            </div>
+
+            {/* Configuração de Qualidade de Impressão e PDF */}
+            <div className="pt-2 border-t border-neutral-800/80 space-y-2">
+              <label className="block text-sm font-medium text-neutral-300 mb-1 flex items-center justify-between">
+                <span>Qualidade do PDF</span>
+                <span className="text-[11px] font-semibold text-blue-400 bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-800/40">
+                  {getQualityConfig(settings.printQuality || '300dpi').label}
+                </span>
+              </label>
+              <select
+                value={settings.printQuality || '300dpi'}
+                onChange={e => {
+                  const newQuality = e.target.value as PrintQualityPreset;
+                  setSettings({ ...settings, printQuality: newQuality });
+                }}
+                className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="300dpi">300 DPI - Padrão Gráfico Impressão (~20-35MB)</option>
+                <option value="ultra">300+ DPI - Ultra Nitidez (~45-65MB)</option>
+                <option value="compact">150 DPI - Médio / Compartilhamento (~10-16MB)</option>
+                <option value="screen">100 DPI - Telas e Apresentação Digital (~4-7MB)</option>
+                <option value="screen_72dpi">72 DPI - Ultracompacto Web / E-mail (~2-4MB)</option>
+              </select>
+
+              <button
+                onClick={() => optimizeProjectPhotos(settings.printQuality || '300dpi')}
+                disabled={isOptimizing || pages.every(p => p.photos.length === 0)}
+                className="w-full mt-2 py-2 px-3 bg-neutral-800 hover:bg-neutral-750 border border-neutral-700 hover:border-blue-500/50 text-neutral-200 rounded-md text-xs font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-40 shadow-sm"
+                title="Aplica a resolução e compressão selecionada a todas as fotos do documento"
+              >
+                {isOptimizing ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin text-blue-400" />
+                    <span>Otimizando {optimizationProgress ? `${optimizationProgress.current}/${optimizationProgress.total}` : '...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={13} className="text-amber-400" />
+                    <span>Aplicar às Fotos ({pages.reduce((acc, p) => acc + p.photos.length, 0)})</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

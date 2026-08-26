@@ -574,21 +574,21 @@ export default function App() {
           </h1>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1 space-y-6 custom-scrollbar">
-          {/* Project Management Section */}
-          <div className="space-y-3 bg-neutral-900/90 border border-neutral-800/90 rounded-lg p-3.5">
+        <div className="p-4 overflow-y-auto flex-1 space-y-4 custom-scrollbar text-xs">
+          {/* Project Management Section - Compact 3-box row */}
+          <div className="space-y-2 bg-neutral-900/90 border border-neutral-800/90 rounded-lg p-2.5">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
-                <FileText size={14} className="text-blue-400" /> Projeto & Sessão
+              <h2 className="text-[11px] font-bold text-neutral-300 uppercase tracking-wider flex items-center gap-1.5">
+                <FileText size={13} className="text-blue-400" /> Projeto & Sessão
               </h2>
-              <span className="text-[11px] text-neutral-400 flex items-center gap-1">
+              <span className="text-[10px] text-neutral-400 flex items-center gap-1">
                 {saveStatus === 'saving' ? (
                   <span className="flex items-center gap-1 text-amber-400">
-                    <Loader2 size={11} className="animate-spin" /> Salvando...
+                    <Loader2 size={10} className="animate-spin" /> Salvando...
                   </span>
                 ) : (
                   <span className="flex items-center gap-1 text-emerald-400">
-                    <Check size={11} /> Auto-salvo
+                    <Check size={10} /> Auto-salvo
                   </span>
                 )}
               </span>
@@ -606,69 +606,71 @@ export default function App() {
               className="hidden" 
             />
 
-            <div className="grid grid-cols-2 gap-2 pt-1">
+            {/* 3 Caixas em uma única linha: Salvar, Abrir, Limpar */}
+            <div className="grid grid-cols-3 gap-1.5 pt-0.5">
               <button
                 onClick={handleExportProject}
                 disabled={isExporting}
-                className="py-2 px-3 bg-blue-600/90 hover:bg-blue-600 text-white rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
-                title="Salva um arquivo .json com fotos, legendas e configurações para continuar depois"
+                className="py-1.5 px-2 bg-blue-600/90 hover:bg-blue-600 text-white rounded text-[11px] font-semibold flex items-center justify-center gap-1 shadow-sm transition-colors disabled:opacity-50"
+                title="Salva um arquivo .json com fotos, legendas e configurações"
               >
-                {isExporting ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-                {isExporting ? 'Salvando...' : 'Salvar Projeto'}
+                {isExporting ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                {isExporting ? 'Salvando' : 'Salvar'}
               </button>
 
               <button
                 onClick={() => projectInputRef.current?.click()}
                 disabled={isImporting}
-                className="py-2 px-3 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 shadow-sm transition-colors disabled:opacity-50"
-                title="Abre um arquivo .json de projeto salvo anteriormente"
+                className="py-1.5 px-2 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 rounded text-[11px] font-semibold flex items-center justify-center gap-1 shadow-sm transition-colors disabled:opacity-50"
+                title="Abre um arquivo .json de projeto salvo"
               >
-                {isImporting ? <Loader2 size={13} className="animate-spin" /> : <FolderOpen size={13} />}
-                {isImporting ? 'Abrindo...' : 'Abrir Projeto'}
+                {isImporting ? <Loader2 size={12} className="animate-spin" /> : <FolderOpen size={12} />}
+                {isImporting ? 'Abrindo' : 'Abrir'}
+              </button>
+
+              <button
+                onClick={() => setShowNewProjectModal(true)}
+                className="py-1.5 px-2 bg-neutral-800/60 hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 border border-neutral-700/60 rounded text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors"
+                title="Limpar projeto e iniciar novo relatório"
+              >
+                <RotateCcw size={12} /> Limpar
               </button>
             </div>
-
-            <button
-              onClick={() => setShowNewProjectModal(true)}
-              className="w-full py-1.5 px-2 bg-transparent hover:bg-neutral-800 text-neutral-400 hover:text-neutral-200 rounded text-xs flex items-center justify-center gap-1.5 transition-colors border border-transparent hover:border-neutral-700"
-            >
-              <RotateCcw size={12} /> Novo Relatório (Limpar)
-            </button>
           </div>
 
-          <div className="space-y-4">
-            <h2 className="text-xs font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-2">
-              <Settings2 size={14} /> Configurações do Documento
+          <div className="space-y-3">
+            <h2 className="text-[11px] font-bold text-neutral-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Settings2 size={13} /> Configurações do Documento
             </h2>
             
             <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1">Título do Relatório</label>
+              <label className="block text-xs font-medium text-neutral-300 mb-1">Título do Relatório</label>
               <input
                 type="text"
                 value={settings.title}
                 onChange={e => setSettings({...settings, title: e.target.value})}
-                className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white focus:ring-blue-500 focus:border-blue-500"
+                className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-1.5 text-xs text-white focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-1">Tamanho</label>
+                <label className="block text-xs font-medium text-neutral-300 mb-1">Tamanho</label>
                 <select
                   value={settings.paperSize}
                   onChange={e => setSettings({...settings, paperSize: e.target.value as any})}
-                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white"
+                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-1.5 text-xs text-white"
                 >
                   <option value="A4">A4</option>
                   <option value="letter">Letter</option>
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-1">Orientação</label>
+                <label className="block text-xs font-medium text-neutral-300 mb-1">Orientação</label>
                 <select
                   value={settings.orientation}
                   onChange={e => setSettings({...settings, orientation: e.target.value as any})}
-                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white"
+                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-1.5 text-xs text-white"
                 >
                   <option value="portrait">Retrato</option>
                   <option value="landscape">Paisagem</option>
@@ -676,13 +678,14 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-neutral-300 mb-1">Fonte</label>
+            {/* Fonte e Colunas na mesma linha */}
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-neutral-300 mb-1">Fonte</label>
                 <select
                   value={settings.fontFamily}
                   onChange={e => setSettings({...settings, fontFamily: e.target.value})}
-                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white"
+                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-1.5 text-xs text-white"
                 >
                   <option value="Arial, sans-serif">Arial</option>
                   <option value="'Calibri', sans-serif">Calibri</option>
@@ -690,98 +693,104 @@ export default function App() {
                   <option value="'Courier New', monospace">Courier New</option>
                 </select>
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-neutral-300 mb-1" title="Colunas por página">Colunas na Grade</label>
-              <select
-                value={settings.columns}
-                onChange={e => setSettings({...settings, columns: Number(e.target.value)})}
-                className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white"
-              >
-                <option value={1}>1 Coluna</option>
-                <option value={2}>2 Colunas</option>
-                <option value={3}>3 Colunas</option>
-                <option value={4}>4 Colunas</option>
-              </select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-1" title="Tamanho da fonte do Título">Tam. Título</label>
+                <label className="block text-xs font-medium text-neutral-300 mb-1" title="Colunas por página">Colunas na Grade</label>
+                <select
+                  value={settings.columns}
+                  onChange={e => setSettings({...settings, columns: Number(e.target.value)})}
+                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-1.5 text-xs text-white"
+                >
+                  <option value={1}>1 Coluna</option>
+                  <option value={2}>2 Colunas</option>
+                  <option value={3}>3 Colunas</option>
+                  <option value={4}>4 Colunas</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-medium text-neutral-300 mb-1" title="Tamanho da fonte do Título">Tam. Título (pt)</label>
                 <input
                   type="number"
                   value={settings.titleFontSize}
                   onChange={e => setSettings({...settings, titleFontSize: Number(e.target.value)})}
-                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white"
+                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-1.5 text-xs text-white"
                   min="12" max="72"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-1" title="Tamanho da fonte das legendas">Tam. Legendas</label>
+                <label className="block text-xs font-medium text-neutral-300 mb-1" title="Tamanho da fonte das legendas">Tam. Legendas (pt)</label>
                 <input
                   type="number"
                   value={settings.captionFontSize}
                   onChange={e => setSettings({...settings, captionFontSize: Number(e.target.value)})}
-                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white"
+                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-1.5 text-xs text-white"
                   min="8" max="36"
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* Página Inicial e Imagem Inicial compactadas em linhas combinadas com checkbox antes do seletor */}
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-1">Página Inicial</label>
-                <input
-                  type="number"
-                  value={settings.startPageNum}
-                  onChange={e => setSettings({...settings, startPageNum: Number(e.target.value)})}
-                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white"
-                  min="1"
-                />
-              </div>
-              <div className="flex items-end pb-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.showPageNum}
-                    onChange={e => setSettings({...settings, showPageNum: e.target.checked})}
-                    className="rounded bg-neutral-800 border-neutral-600 text-blue-500 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-neutral-300">Numerar pág.</span>
+                <label className="text-xs font-medium text-neutral-300 mb-1 flex items-center justify-between">
+                  <span>Páginas</span>
+                  <label className="flex items-center gap-1 cursor-pointer font-normal text-[11px] text-neutral-400">
+                    <input
+                      type="checkbox"
+                      checked={settings.showPageNum}
+                      onChange={e => setSettings({...settings, showPageNum: e.target.checked})}
+                      className="rounded bg-neutral-800 border-neutral-600 text-blue-500 focus:ring-blue-500 h-3.5 w-3.5"
+                    />
+                    <span>Numerar</span>
+                  </label>
                 </label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-neutral-400 shrink-0">Inicial:</span>
+                  <input
+                    type="number"
+                    value={settings.startPageNum}
+                    onChange={e => setSettings({...settings, startPageNum: Number(e.target.value)})}
+                    disabled={!settings.showPageNum}
+                    className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-1.5 text-xs text-white disabled:opacity-40"
+                    min="1"
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-neutral-300 mb-1">Imagem Inicial</label>
-                <input
-                  type="number"
-                  value={settings.startingImageNumber}
-                  onChange={e => setSettings({...settings, startingImageNumber: Number(e.target.value)})}
-                  className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white"
-                  min="1"
-                />
-              </div>
-              <div className="flex items-end pb-2">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={settings.numberImages}
-                    onChange={e => setSettings({...settings, numberImages: e.target.checked})}
-                    className="rounded bg-neutral-800 border-neutral-600 text-blue-500 focus:ring-blue-500"
-                  />
-                  <span className="text-sm font-medium text-neutral-300">Numerar img.</span>
+                <label className="text-xs font-medium text-neutral-300 mb-1 flex items-center justify-between">
+                  <span>Imagens</span>
+                  <label className="flex items-center gap-1 cursor-pointer font-normal text-[11px] text-neutral-400">
+                    <input
+                      type="checkbox"
+                      checked={settings.numberImages}
+                      onChange={e => setSettings({...settings, numberImages: e.target.checked})}
+                      className="rounded bg-neutral-800 border-neutral-600 text-blue-500 focus:ring-blue-500 h-3.5 w-3.5"
+                    />
+                    <span>Numerar</span>
+                  </label>
                 </label>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] text-neutral-400 shrink-0">Inicial:</span>
+                  <input
+                    type="number"
+                    value={settings.startingImageNumber}
+                    onChange={e => setSettings({...settings, startingImageNumber: Number(e.target.value)})}
+                    disabled={!settings.numberImages}
+                    className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-1.5 text-xs text-white disabled:opacity-40"
+                    min="1"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Configuração de Qualidade de Impressão e PDF */}
-            <div className="pt-2 border-t border-neutral-800/80 space-y-2">
-              <label className="block text-sm font-medium text-neutral-300 mb-1 flex items-center justify-between">
+            <div className="pt-2 border-t border-neutral-800/80 space-y-1.5">
+              <label className="block text-xs font-medium text-neutral-300 mb-1 flex items-center justify-between">
                 <span>Qualidade do PDF</span>
-                <span className="text-[11px] font-semibold text-blue-400 bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-800/40">
+                <span className="text-[10px] font-semibold text-blue-400 bg-blue-950/60 px-1.5 py-0.5 rounded border border-blue-800/40">
                   {getQualityConfig(settings.printQuality || '300dpi').label}
                 </span>
               </label>
@@ -791,29 +800,29 @@ export default function App() {
                   const newQuality = e.target.value as PrintQualityPreset;
                   setSettings({ ...settings, printQuality: newQuality });
                 }}
-                className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-2 text-sm text-white focus:ring-blue-500 focus:border-blue-500"
+                className="w-full bg-neutral-800 border-neutral-700 rounded-md shadow-sm border p-1.5 text-xs text-white focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="300dpi">300 DPI - Padrão Gráfico Impressão (~20-35MB)</option>
+                <option value="300dpi">300 DPI - Padrão Gráfico (~20-35MB)</option>
                 <option value="ultra">300+ DPI - Ultra Nitidez (~45-65MB)</option>
-                <option value="compact">150 DPI - Médio / Compartilhamento (~10-16MB)</option>
-                <option value="screen">100 DPI - Telas e Apresentação Digital (~4-7MB)</option>
-                <option value="screen_72dpi">72 DPI - Ultracompacto Web / E-mail (~2-4MB)</option>
+                <option value="compact">150 DPI - Compartilhamento (~10-16MB)</option>
+                <option value="screen">100 DPI - Telas Digital (~4-7MB)</option>
+                <option value="screen_72dpi">72 DPI - Ultracompacto Web (~2-4MB)</option>
               </select>
 
               <button
                 onClick={() => optimizeProjectPhotos(settings.printQuality || '300dpi')}
                 disabled={isOptimizing || pages.every(p => p.photos.length === 0)}
-                className="w-full mt-2 py-2 px-3 bg-neutral-800 hover:bg-neutral-750 border border-neutral-700 hover:border-blue-500/50 text-neutral-200 rounded-md text-xs font-semibold flex items-center justify-center gap-2 transition-all disabled:opacity-40 shadow-sm"
+                className="w-full mt-1.5 py-1.5 px-2 bg-neutral-800 hover:bg-neutral-750 border border-neutral-700 hover:border-blue-500/50 text-neutral-200 rounded text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-all disabled:opacity-40 shadow-sm"
                 title="Aplica a resolução e compressão selecionada a todas as fotos do documento"
               >
                 {isOptimizing ? (
                   <>
-                    <Loader2 size={13} className="animate-spin text-blue-400" />
+                    <Loader2 size={12} className="animate-spin text-blue-400" />
                     <span>Otimizando {optimizationProgress ? `${optimizationProgress.current}/${optimizationProgress.total}` : '...'}</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles size={13} className="text-amber-400" />
+                    <Sparkles size={12} className="text-amber-400" />
                     <span>Aplicar às Fotos ({pages.reduce((acc, p) => acc + p.photos.length, 0)})</span>
                   </>
                 )}
@@ -822,7 +831,7 @@ export default function App() {
           </div>
         </div>
 
-        <div className="p-6 border-t border-neutral-800 bg-neutral-950 space-y-3">
+        <div className="p-4 border-t border-neutral-800 bg-neutral-950 space-y-2">
           <input 
             type="file" 
             ref={fileInputRef} 

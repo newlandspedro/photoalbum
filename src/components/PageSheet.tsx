@@ -83,9 +83,17 @@ export function PageSheet({
          </div>
       </SortableContext>
 
-      {/* Page Numbering */}
+      {/* Page Numbering - Aligned with the right boundary of the photos (1.5cm page padding) */}
       {settings.showPageNum && (
-        <div className="absolute bottom-4 right-8" style={{ fontFamily: settings.fontFamily, fontSize: `${settings.captionFontSize}px` }}>
+        <div 
+          className="absolute text-right select-none pointer-events-none" 
+          style={{ 
+            fontFamily: settings.fontFamily, 
+            fontSize: `${settings.captionFontSize}px`,
+            right: '1.5cm',
+            bottom: '0.6cm'
+          }}
+        >
           Página {settings.startPageNum + pageIndex}
         </div>
       )}
